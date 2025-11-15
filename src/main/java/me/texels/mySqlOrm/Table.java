@@ -107,11 +107,37 @@ public  abstract class Table {
         }
         return true;
     }
-    public static <T extends Table> List<T> find(){
-        return null;
+    public static <T extends Table> T rowToObject(Map<String, Pair<Class<?>, Object>> row){
+        try {
+            T instance =  (T) _clazz.getDeclaredConstructor().newInstance();
+            for (String columnNames : row.keySet()) {
+                _clazz.getField(columnNames).set(instance, row.get(columnNames));
+            }
+            return instance;
+        }catch (Exception e){
+            System.err.println(e);
+            return null;
+        }
+
+    }
+    public static <T extends Table> List<T> find(Where where){
+        List<Map<String, Pair<Class<?>, Object>>> allColumns = _db.execute("SELECT * FROM `"+_tableName+"` " + where.getStatement()+";");
+        List<T> instances = new ArrayList<>();
+        for (Map<String, Pair<Class<?>, Object>> row : allColumns){
+            T instance = rowToObject(row);
+            if (instance != null) instances.add(instance);
+        }
+        return instances;
     }
     public static <T extends Table> T findByPk(){
-        return null;
+        Pair<String, Column> primaryKey = null;
+        for (String columnName : _columns.keySet()){
+            Column column = _columns.get(columnName);
+            if (column.primaryKey()) primaryKey = Pair.of(columnName, column);
+        }
+        if (primaryKey == null) return null;
+        Map<String, Pair<Class<?>, Object>> result = _db.execute("SELECT * FROM WHERE "+primaryKey.first+" = " + primaryKey.second).get(0);
+        return rowToObject(result);
     }
 
     public static boolean sync(boolean alter, boolean force){
