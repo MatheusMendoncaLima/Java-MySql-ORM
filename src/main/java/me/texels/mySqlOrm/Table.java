@@ -52,7 +52,9 @@ public  abstract class Table {
     public boolean save(){
         HashMap<String, Object> clazzAttributes = new HashMap<>();
         Pair<String, Object> primaryKey = null;
-        System.out.println(_clazz.getDeclaredFields());
+        for (Field attribute : _clazz.getDeclaredFields()) {
+            System.out.println(attribute.getName());
+        }
         for (Field attribute : _clazz.getDeclaredFields()){
             if (attribute.isAnnotationPresent(Column.class)){
                 try {
