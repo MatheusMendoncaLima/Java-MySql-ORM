@@ -114,7 +114,7 @@ public  abstract class Table {
         try {
             T instance =  (T) _clazz.getDeclaredConstructor().newInstance();
             for (String columnNames : row.keySet()) {
-                _clazz.getField(columnNames).set(instance, row.get(columnNames));
+                _clazz.getField(columnNames).set(instance, row.get(columnNames).first.cast(row.get(columnNames).second));
             }
             return instance;
         }catch (Exception e){
