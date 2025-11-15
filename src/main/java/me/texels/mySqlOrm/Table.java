@@ -114,7 +114,12 @@ public  abstract class Table {
         try {
             T instance =  (T) _clazz.getDeclaredConstructor().newInstance();
             for (String columnNames : row.keySet()) {
-                _clazz.getField(columnNames).set(instance, row.get(columnNames).first.cast(row.get(columnNames).second));
+                if (_clazz.getField(columnNames).getType() == Integer.class && row.get(columnNames).first == Long.class) {
+                    _clazz.getField(columnNames).set(instance, Math.toIntExact ((long)row.get(columnNames).first.cast(row.get(columnNames).second)));
+
+                } else {
+                    _clazz.getField(columnNames).set(instance, row.get(columnNames).first.cast(row.get(columnNames).second));
+                }
             }
             return instance;
         }catch (Exception e){
