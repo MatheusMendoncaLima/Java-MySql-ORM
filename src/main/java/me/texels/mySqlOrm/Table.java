@@ -52,9 +52,7 @@ public  abstract class Table {
     public boolean save(){
         HashMap<String, Object> clazzAttributes = new HashMap<>();
         Pair<String, Object> primaryKey = null;
-        for (Field attribute : _clazz.getDeclaredFields()) {
-            System.out.println(attribute.getName());
-        }
+
         for (Field attribute : _clazz.getDeclaredFields()){
             if (attribute.isAnnotationPresent(Column.class)){
                 try {
@@ -114,7 +112,6 @@ public  abstract class Table {
         try {
             T instance =  (T) _clazz.getDeclaredConstructor().newInstance();
             for (String columnNames : row.keySet()) {
-                System.out.println(_clazz.getField(columnNames).getType() +" "+ (_clazz.getField(columnNames).getType() == int.class) );
                 if (_clazz.getField(columnNames).getType() == int.class && row.get(columnNames).first == Long.class) {
                     _clazz.getField(columnNames).set(instance, Math.toIntExact ((long)row.get(columnNames).first.cast(row.get(columnNames).second)));
 
