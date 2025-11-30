@@ -174,7 +174,7 @@ public  abstract class Table {
                 List<String> columnNames = new ArrayList<>();
 
                 for (Map<String, Pair<Class<?>, Object>> row : columns) {
-                    System.out.println(row.get("COLUMN_KEY").second.toString());
+                    System.out.println(row.get("COLUMN_KEY").second.toString() + " - " + row.get("COLUMN_KEY").second.toString().equals("PRI"));
                     if (row.get("COLUMN_KEY").second.toString().equals("PRI")) continue;
                     columnNames.add(row.get("COLUMN_NAME").second.toString());
                 }
