@@ -172,15 +172,19 @@ public  abstract class Table {
                 List<Map<String, Pair<Class<?>, Object>>> columns = _db.execute("SELECT COLUMN_NAME, COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS " +
                         "WHERE TABLE_SCHEMA = \"" + _db.getDbName() + "\" AND TABLE_NAME = \"" + _tableName + "\";");
                 List<String> columnNames = new ArrayList<>();
-
+                String primaryKeyName = "";
                 for (Map<String, Pair<Class<?>, Object>> row : columns) {
                     System.out.println(row.get("COLUMN_KEY").second.toString() + " - " + row.get("COLUMN_KEY").second.toString().equals("PRI"));
-                    if (row.get("COLUMN_KEY").second.toString().equals("PRI")) continue;
+                    if (row.get("COLUMN_KEY").second.toString().equals("PRI")) {
+                        primaryKeyName= row.get("COLUMN_NAME").second.toString();
+                        continue;
+                    }
                     columnNames.add(row.get("COLUMN_NAME").second.toString());
                 }
                 for (int i = 0; i < _columns.size(); i++) {
                     String columnName = (String) Arrays.asList(_columns.keySet().toArray()).get(i);
                     Column column = _columns.get(columnName);
+                    if (columnName.equals(primaryKeyName)) continue;
                     if (columnNames.contains(columnName)) {
                         _db.execute("ALTER TABLE `" + _tableName + "` MODIFY COLUMN " + ColumnHandler.toStatement(Pair.of(columnName, column)) + ";");
                     } else {
