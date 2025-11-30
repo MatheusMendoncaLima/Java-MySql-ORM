@@ -173,9 +173,10 @@ public  abstract class Table {
                         "WHERE TABLE_SCHEMA = \"" + _db.getDbName() + "\" AND TABLE_NAME = \"" + _tableName + "\";");
                 List<String> columnNames = new ArrayList<>();
 
-                for (Map<String, Pair<Class<?>, Object>> column : columns) {
-                    if (column.get("COLUMN_KEY").second.toString().equals("PRI")) continue;
-                    columnNames.add(column.get("COLUMN_NAME").second.toString());
+                for (Map<String, Pair<Class<?>, Object>> row : columns) {
+                    System.out.println(row.get("COLUMN_KEY").second.toString());
+                    if (row.get("COLUMN_KEY").second.toString().equals("PRI")) continue;
+                    columnNames.add(row.get("COLUMN_NAME").second.toString());
                 }
                 for (int i = 0; i < _columns.size(); i++) {
                     String columnName = (String) Arrays.asList(_columns.keySet().toArray()).get(i);
