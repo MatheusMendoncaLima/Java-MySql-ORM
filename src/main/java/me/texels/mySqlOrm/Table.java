@@ -169,11 +169,12 @@ public  abstract class Table {
             return true;
         }else{
             if(alter) {
-                List<Map<String, Pair<Class<?>, Object>>> columns = _db.execute("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = \"" + _db.getDbName() + "\" AND TABLE_NAME = \"" + _tableName + "\";");
+                List<Map<String, Pair<Class<?>, Object>>> columns = _db.execute("SELECT COLUMN_NAME, COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS " +
+                        "WHERE TABLE_SCHEMA = \"" + _db.getDbName() + "\" AND TABLE_NAME = \"" + _tableName + "\";");
                 List<String> columnNames = new ArrayList<>();
 
                 for (Map<String, Pair<Class<?>, Object>> column : columns) {
-                    if (column.get("COLUMN_KEY").toString().equals("PRI")) continue;
+                    if (column.get("COLUMN_KEY").second.toString().equals("PRI")) continue;
                     columnNames.add(column.get("COLUMN_NAME").second.toString());
                 }
                 for (int i = 0; i < _columns.size(); i++) {
