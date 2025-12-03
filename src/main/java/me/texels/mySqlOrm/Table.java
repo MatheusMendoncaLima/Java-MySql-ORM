@@ -10,12 +10,19 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 public  abstract class Table {
-    private static Database _db;
-    private static  Class<?> _clazz;
-    private static String _tableName;
-    private static LinkedHashMap<String,Column> _columns;
+    private final TableMetaData meta;
+    protected Class<?> _clazz;
+    protected Database _db;
+    protected String _tableName;
+    protected LinkedHashMap<String, Column> _columns;
 
     public Table(){
+        this.meta = TableRegistry.get(this.getClass());
+        this._clazz = this.meta._clazz;
+        this._db = this.meta._db;
+        this._tableName = this.meta._tableName;
+        this._columns = this.meta._columns;
+
         if (this.getClass() == _clazz){
             _columns.forEach((columnName, column) ->{
                 try {
@@ -29,17 +36,18 @@ public  abstract class Table {
             });
         }
     }
-    public static void update(){
+
+    public  void update(){
 
     }
-    public static void destroy(Where where){
+    public void destroy(Where where){
         _db.execute("DELETE FROM `"+_tableName+"` " +where.getStatement() + ";");
     }
-    public static <T extends Table> T create(){
-       // _db.execute("INSERT INTO `"+_tableName+"` ("+_columns+") VALUES ()");
+    public  <T extends Table> T create(){
+        //_db.execute("INSERT INTO `"+_tableName+"` ("+_columns+") VALUES ()");
         return null;
     }
-    public static int count(){
+    public  int count(){
         List<Map<String, Pair<Class<?>, Object>>> result =_db.execute("SELECT COUNT(*) FROM `"+_tableName+"`");
         if (result.isEmpty()) return 0;
         try {
@@ -67,6 +75,8 @@ public  abstract class Table {
                 }
             }
         }
+        clazzAttributes.forEach((nome, val)->{
+        });
         if (primaryKey == null) return false;
 
         final List<String> valuesList = new ArrayList<>();
@@ -108,7 +118,7 @@ public  abstract class Table {
         }
         return true;
     }
-    public static <T extends Table> T rowToObject(Map<String, Pair<Class<?>, Object>> row){
+    public <T extends Table> T rowToObject(Map<String, Pair<Class<?>, Object>> row){
         try {
             T instance =  (T) _clazz.getDeclaredConstructor().newInstance();
             for (String columnNames : row.keySet()) {
@@ -126,7 +136,7 @@ public  abstract class Table {
         }
 
     }
-    public static <T extends Table> List<T> find(Where where){
+    public  <T extends Table> List<T> find(Where where){
         List<Map<String, Pair<Class<?>, Object>>> allColumns = _db.execute("SELECT * FROM `"+_tableName+"` " + where.getStatement()+";");
         List<T> instances = new ArrayList<>();
         for (Map<String, Pair<Class<?>, Object>> row : allColumns){
@@ -135,7 +145,7 @@ public  abstract class Table {
         }
         return instances;
     }
-    public static <T extends Table> T findByPk(){
+    public  <T extends Table> T findByPk(){
         Pair<String, Column> primaryKey = null;
         for (String columnName : _columns.keySet()){
             Column column = _columns.get(columnName);
@@ -146,86 +156,6 @@ public  abstract class Table {
         return rowToObject(result);
     }
 
-    public static boolean sync(boolean alter, boolean force){
-        List<Map<String, Pair<Class<?>, Object>>> findTable = _db.execute("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = \""+_db.getDbName() + "\" AND TABLE_NAME = \"" +_tableName + "\"");
-        if(force && !findTable.isEmpty()){
-            _db.execute("DROP TABLE `"+ _tableName +"`;");
-            findTable.clear();
-        }
 
-        if (findTable.isEmpty()){
-            String statement = "CREATE TABLE `"+_tableName+"`(\n";
 
-            List<String> statements = new ArrayList<>();
-            for (int i = 0; i < _columns.size(); i++) {
-                String columnName = (String) Arrays.asList(_columns.keySet().toArray()).get(i);
-                Column column = _columns.get(columnName);
-
-                statements.add(ColumnHandler.toStatement(Pair.of(columnName, column)));
-            }
-            statement += String.join(", \n", statements);
-            statement+="\n);";
-            _db.execute(statement);
-            return true;
-        }else{
-            if(alter) {
-                List<Map<String, Pair<Class<?>, Object>>> columns = _db.execute("SELECT COLUMN_NAME, COLUMN_KEY FROM INFORMATION_SCHEMA.COLUMNS " +
-                        "WHERE TABLE_SCHEMA = \"" + _db.getDbName() + "\" AND TABLE_NAME = \"" + _tableName + "\";");
-                List<String> columnNames = new ArrayList<>();
-                String primaryKeyName = "";
-                for (Map<String, Pair<Class<?>, Object>> row : columns) {
-                    System.out.println(row.get("COLUMN_KEY").second.toString() + " - " + row.get("COLUMN_KEY").second.toString().equals("PRI"));
-                    if (row.get("COLUMN_KEY").second.toString().equals("PRI")) {
-                        primaryKeyName= row.get("COLUMN_NAME").second.toString();
-                        continue;
-                    }
-                    columnNames.add(row.get("COLUMN_NAME").second.toString());
-                }
-                for (int i = 0; i < _columns.size(); i++) {
-                    String columnName = (String) Arrays.asList(_columns.keySet().toArray()).get(i);
-                    Column column = _columns.get(columnName);
-                    if (columnName.equals(primaryKeyName)) continue;
-                    if (columnNames.contains(columnName)) {
-                        _db.execute("ALTER TABLE `" + _tableName + "` MODIFY COLUMN " + ColumnHandler.toStatement(Pair.of(columnName, column)) + ";");
-                    } else {
-                        _db.execute("ALTER TABLE `" + _tableName + "` ADD COLUMN " + ColumnHandler.toStatement(Pair.of(columnName, column)) + ";");
-                    }
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-    public static boolean sync(boolean alter){
-        return sync(alter, false);
-    }
-    public static boolean sync(){
-        return sync(false, false);
-    }
-
-    public static <T extends Table> void init(Class<T> thisClass, Database database){
-        _db = database;
-        _clazz = thisClass;
-
-        if (_clazz.isAnnotationPresent(TableConfig.class) && !_clazz.getAnnotation(TableConfig.class).name().isEmpty()){
-            TableConfig tableConfig = _clazz.getAnnotation(TableConfig.class);
-            _tableName=tableConfig.name();
-        }else{
-            String[] splitClassName = _clazz.getName().split("\\.");
-
-            _tableName= splitClassName[splitClassName.length-1];
-
-        }
-        LinkedHashMap<String,Column> columns = new LinkedHashMap<>();
-        for (int i = 0; i < _clazz.getDeclaredFields().length; i++) {
-            Field field = _clazz.getDeclaredFields()[i];
-            if(field.isAnnotationPresent(Column.class)){
-                Column column = field.getAnnotation(Column.class);
-                columns.put(column.columnName().isEmpty()? field.getName() : column.columnName(), column);
-            }
-        }
-        _columns = columns;
-        _columns.forEach(((name,column) -> {
-        }));
-    }
 }
